@@ -1,2 +1,11 @@
-import "./main-webgl"; // Use this to test the webGL example version
-//import "./main-web-gpu"; // Use this to test the webGPU example version
+// Entry point: routes to WebGL or WebGPU demo based on URL hash.
+// #webgpu -> loads WebGPU demo
+// anything else (default) -> loads WebGL demo
+
+const hash = window.location.hash;
+
+if (hash === '#webgpu') {
+    import('./main-web-gpu');
+} else {
+    import('./main-webgl');
+}
