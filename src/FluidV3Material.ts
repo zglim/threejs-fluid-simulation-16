@@ -1059,8 +1059,12 @@ export class FluidV3Material extends MeshPhysicalMaterial {
                     pressureIterations: this.pressureIterations,
                 }
 
-                navigator.clipboard.writeText( JSON.stringify(settings, null, 2));
-                
+                try {
+                    navigator.clipboard.writeText( JSON.stringify(settings, null, 2));
+                } catch(e) {
+                    console.warn("Could not copy settings to clipboard:", e);
+                }
+
             }
         }, "copySettings" );
 
