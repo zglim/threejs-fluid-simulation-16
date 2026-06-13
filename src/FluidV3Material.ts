@@ -25,6 +25,8 @@ SOFTWARE.
 import GUI from "three/examples/jsm/libs/lil-gui.module.min.js";
 import { Color, ColorRepresentation, DataTexture, FloatType, Mesh, MeshPhysicalMaterial, Object3D, Raycaster, RGBAFormat, ShaderMaterial, Vector2, Vector3, WebGLRenderer, WebGLRenderTarget, type WebGLProgramParametersWithUniforms } from "three";
 import { FullScreenQuad } from "three/examples/jsm/Addons.js";
+import type { FluidPresetParams, MaterialMode } from './PresetManager';
+import { showToast, copyToClipboard } from './clipboard';
 
 /**
  * R - Pressure
@@ -1045,7 +1047,7 @@ export class FluidV3Material extends MeshPhysicalMaterial {
         panel.add( this as Record<string, any>, "displacementScale", -.1, .1 );
         panel.add( this as Record<string, any>, "pressureIterations", 1, 100, 1 );
         panel.add( {
-            copySettings: ()=>{
+            copySettings: async ()=>{
 
                 const settings = {
                     splatForce: this.splatForce,
@@ -1059,8 +1061,13 @@ export class FluidV3Material extends MeshPhysicalMaterial {
                     pressureIterations: this.pressureIterations,
                 }
 
-                navigator.clipboard.writeText( JSON.stringify(settings, null, 2));
-                
+                const ok = await copyToClipboard( JSON.stringify(settings, null, 2));
+                if( ok ) {
+                    showToast('✅ Config copied to clipboard');
+                } else {
+                    showToast('❌ Copy failed: clipboard not available', 'error');
+                }
+
             }
         }, "copySettings" );
 
@@ -1093,6 +1100,57 @@ export class FluidV3Material extends MeshPhysicalMaterial {
         this.velocityDissipation = s.velocityDissipation;
         this.densityDissipation = s.densityDissipation;
         this.displacementScale = s.displacementScale;
-        this.pressureIterations = s.pressureIterations; 
+        this.pressureIterations = s.pressureIterations;
+    }
+
+    /**
+     * Returns the current parameters in the unified preset format,
+     * shared between WebGL and WebGPU pipelines.
+     */
+    getUnifiedParams(): FluidPresetParams {
+        return {
+            splatForce: this.splatForce,
+            splatThickness: this.splatThickness,
+            vorticityInfluence: this.vorticityInfluence,
+            swirlIntensity: this.swirlIntensity,
+            pressure: this.pressure,
+            velocityDissipation: this.velocityDissipation,
+            densityDissipation: this.densityDissipation,
+            displacementScale: this.displacementScale,
+            pressureIterations: this.pressureIterations,
+        };
+    }
+
+    /**
+     * Applies a set of unified preset parameters.
+     */
+    applyUnifiedParams(params: FluidPresetParams): void {
+        this.splatForce = params.splatForce;
+        this.splatThickness = params.splatThickness;
+        this.vorticityInfluence = params.vorticityInfluence;
+        this.swirlIntensity = params.swirlIntensity;
+        this.pressure = params.pressure;
+        this.velocityDissipation = params.velocityDissipation;
+        this.densityDissipation = params.densityDissipation;
+        this.displacementScale = params.displacementScale;
+        this.pressureIterations = params.pressureIterations;
+    }
+
+    /**
+     * Returns the current material mode ('solid' or 'smoke').
+     */
+    getMode(): MaterialMode {
+        return this.actAsSmoke ? 'smoke' : 'solid';
+    }
+
+    /**
+     * Applies a material mode, switching between solid and smoke rendering.
+     */
+    applyMode(mode: MaterialMode): void {
+        if (mode === 'smoke') {
+            this.asSmoke();
+        } else {
+            this.asSolid();
+        }
     }
 }

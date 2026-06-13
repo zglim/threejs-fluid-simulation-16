@@ -26,6 +26,8 @@ SOFTWARE.
 import GUI from "three/examples/jsm/libs/lil-gui.module.min.js";
 import { NodeRepresentation, storage, abs, add, clamp, Continue, cross, distance, dot, Fn, If, instanceIndex, length, Loop, max, mix, modelNormalMatrix, mul, normalGeometry, normalize, positionLocal, smoothstep, texture, textureStore, uniform, uv, vec2, vec3, vec4, type ShaderNodeObject } from "three/tsl";
 import { Color, ComputeNode, FloatType, Mesh, MeshPhysicalNodeMaterial, Node, Object3D, Raycaster, StorageBufferAttribute, StorageTexture, Texture, TextureNode, UniformNode, Vector2, Vector3, WebGPURenderer, type ColorRepresentation } from "three/webgpu";
+import type { FluidPresetParams, MaterialMode } from './PresetManager';
+import { showToast, copyToClipboard } from './clipboard';
 
 type Sampler2D = ShaderNodeObject<TextureNode>;
 type NumberUniform = ShaderNodeObject<UniformNode<number>>;
@@ -860,7 +862,7 @@ export class FluidMaterialGPU extends MeshPhysicalNodeMaterial {
         panel.add(this as Record<string, any>, "pressureIterations", 1, 100, 1);
 
         panel.add({
-            copySettings: () => {
+            copySettings: async () => {
 
                 const settings = {
                     splatForce: this.splatForce,
@@ -874,7 +876,12 @@ export class FluidMaterialGPU extends MeshPhysicalNodeMaterial {
                     pressureIterations: this.pressureIterations,
                 }
 
-                navigator.clipboard.writeText(JSON.stringify(settings, null, 2));
+                const ok = await copyToClipboard(JSON.stringify(settings, null, 2));
+                if (ok) {
+                    showToast('✅ Config copied to clipboard');
+                } else {
+                    showToast('❌ Copy failed: clipboard not available', 'error');
+                }
 
             }
         }, "copySettings");
@@ -896,5 +903,55 @@ export class FluidMaterialGPU extends MeshPhysicalNodeMaterial {
         this.densityDissipation = s.densityDissipation;
         this.bumpDisplacmentScale = s.bumpDisplacmentScale;
         this.pressureIterations = s.pressureIterations;
+    }
+
+    /**
+     * Returns the current parameters in the unified preset format,
+     * shared between WebGL and WebGPU pipelines.
+     * pressureDecay -> pressure, bumpDisplacmentScale -> displacementScale
+     */
+    getUnifiedParams(): FluidPresetParams {
+        return {
+            splatForce: this.splatForce,
+            splatThickness: this.splatThickness,
+            vorticityInfluence: this.vorticityInfluence,
+            swirlIntensity: this.swirlIntensity,
+            pressure: this.pressureDecay,
+            velocityDissipation: this.velocityDissipation,
+            densityDissipation: this.densityDissipation,
+            displacementScale: this.bumpDisplacmentScale,
+            pressureIterations: this.pressureIterations,
+        };
+    }
+
+    /**
+     * Applies a set of unified preset parameters.
+     * pressure -> pressureDecay, displacementScale -> bumpDisplacmentScale
+     */
+    applyUnifiedParams(params: FluidPresetParams): void {
+        this.splatForce = params.splatForce;
+        this.splatThickness = params.splatThickness;
+        this.vorticityInfluence = params.vorticityInfluence;
+        this.swirlIntensity = params.swirlIntensity;
+        this.pressureDecay = params.pressure;
+        this.velocityDissipation = params.velocityDissipation;
+        this.densityDissipation = params.densityDissipation;
+        this.bumpDisplacmentScale = params.displacementScale;
+        this.pressureIterations = params.pressureIterations;
+    }
+
+    /**
+     * Returns the current material mode ('solid' or 'smoke').
+     */
+    getMode(): MaterialMode {
+        return this.actAsSmoke ? 'smoke' : 'solid';
+    }
+
+    /**
+     * Applies a material mode, switching between solid and smoke rendering.
+     */
+    applyMode(mode: MaterialMode): void {
+        this.actAsSmoke = (mode === 'smoke');
+        this.transparent = (mode === 'smoke');
     }
 }
