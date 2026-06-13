@@ -1,4 +1,4 @@
- 
+
 import './index.css'
 import * as THREE from "three";
 import { OrbitControls } from "three/examples/jsm/Addons.js";
@@ -6,7 +6,9 @@ import Stats from "three/examples/jsm/libs/stats.module.js";
 import GUI from "three/examples/jsm/libs/lil-gui.module.min.js";
 import "./index.css";
 import { FluidV3Material } from './FluidV3Material';
-import { Sky } from 'three/addons/objects/Sky.js'; 
+import { Sky } from 'three/addons/objects/Sky.js';
+import { addPresetPanel, type FluidMaterialAdapter } from './PresetUI';
+import type { FluidMode } from './presets'; 
 
 const stats = new Stats();
 document.body.appendChild(stats.dom);
@@ -107,6 +109,35 @@ let time = 0;
           "displacementScale": 0.013,
           "pressureIterations": 58
         })
+
+        // -- Preset Panel --
+        const webglAdapter: FluidMaterialAdapter = {
+          rendererType: "webgl",
+          getCurrentParams() {
+            return {
+              splatForce: fluidMat.splatForce,
+              splatThickness: fluidMat.splatThickness,
+              vorticityInfluence: fluidMat.vorticityInfluence,
+              swirlIntensity: fluidMat.swirlIntensity,
+              pressure: fluidMat.pressure,
+              velocityDissipation: fluidMat.velocityDissipation,
+              densityDissipation: fluidMat.densityDissipation,
+              displacementScale: fluidMat.displacementScale,
+              pressureIterations: fluidMat.pressureIterations,
+            };
+          },
+          applySettings(flat) {
+            fluidMat.setSettings(flat as any);
+          },
+          applyMode(mode: FluidMode) {
+            if (mode === "smoke") {
+              fluidMat.asSmoke();
+            } else {
+              fluidMat.asSolid();
+            }
+          },
+        };
+        addPresetPanel(panel, webglAdapter);
 
 //---------------------------------------------------------
 

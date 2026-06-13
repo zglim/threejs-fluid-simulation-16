@@ -6,6 +6,8 @@ import Stats from "three/examples/jsm/libs/stats.module.js";
 import GUI from "three/examples/jsm/libs/lil-gui.module.min.js";
 import "./index.css";
 import { FluidMaterialGPU } from './FluidMaterialGPU';
+import { addPresetPanel, type FluidMaterialAdapter } from './PresetUI';
+import type { FluidMode } from './presets';
 
 const stats = new Stats();
 const clock = new THREE.Clock();
@@ -97,6 +99,39 @@ fluidMat.setSettings({
     "bumpDisplacmentScale": 0.0316,
     "pressureIterations": 39
 })
+
+// -- Preset Panel --
+const webgpuAdapter: FluidMaterialAdapter = {
+    rendererType: "webgpu",
+    getCurrentParams() {
+        return {
+            splatForce: fluidMat.splatForce,
+            splatThickness: fluidMat.splatThickness,
+            vorticityInfluence: fluidMat.vorticityInfluence,
+            swirlIntensity: fluidMat.swirlIntensity,
+            pressureDecay: fluidMat.pressureDecay,
+            velocityDissipation: fluidMat.velocityDissipation,
+            densityDissipation: fluidMat.densityDissipation,
+            bumpDisplacmentScale: fluidMat.bumpDisplacmentScale,
+            pressureIterations: fluidMat.pressureIterations,
+        };
+    },
+    applySettings(flat) {
+        fluidMat.setSettings(flat as any);
+    },
+    applyMode(mode: FluidMode) {
+        // WebGPU material doesn't have asSolid/asSmoke methods,
+        // but we can adjust visual properties directly
+        if (mode === "smoke") {
+            fluidMat.transparent = true;
+            fluidMat.actAsSmoke = true;
+        } else {
+            fluidMat.transparent = true; // keep transparent for now
+            fluidMat.actAsSmoke = false;
+        }
+    },
+};
+addPresetPanel(panel, webgpuAdapter);
 
 //---------------------------------------------------------
 
