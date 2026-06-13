@@ -597,7 +597,8 @@ export class FluidMaterialGPU extends MeshPhysicalNodeMaterial {
     track(object: Object3D, ratio = 1, color: ColorRepresentation = Color.NAMES.black) {
         const freeSlot = this.tracking.find(slot => !slot.target);
         if (!freeSlot) {
-            throw new Error(`No room for tracking, all slots taken!`);
+            console.warn(`No room for tracking, all slots taken!`);
+            return;
         }
 
         // hacer un raycast desde la posision del objeto hacia abajo
@@ -874,7 +875,11 @@ export class FluidMaterialGPU extends MeshPhysicalNodeMaterial {
                     pressureIterations: this.pressureIterations,
                 }
 
-                navigator.clipboard.writeText(JSON.stringify(settings, null, 2));
+                try {
+                    navigator.clipboard.writeText(JSON.stringify(settings, null, 2));
+                } catch (_e) {
+                    console.warn("Clipboard write failed – browser may not support it or page is not focused.");
+                }
 
             }
         }, "copySettings");
@@ -887,14 +892,19 @@ export class FluidMaterialGPU extends MeshPhysicalNodeMaterial {
      * @see `addDebugPanelFolder`
      */
     setSettings(s: Settings) {
-        this.splatForce = s.splatForce;
-        this.splatThickness = s.splatThickness;
-        this.vorticityInfluence = s.vorticityInfluence;
-        this.swirlIntensity = s.swirlIntensity;
-        this.pressureDecay = s.pressureDecay;
-        this.velocityDissipation = s.velocityDissipation;
-        this.densityDissipation = s.densityDissipation;
-        this.bumpDisplacmentScale = s.bumpDisplacmentScale;
-        this.pressureIterations = s.pressureIterations;
+        if (s.splatForce !== undefined) this.splatForce = s.splatForce;
+        if (s.splatThickness !== undefined) this.splatThickness = s.splatThickness;
+        if (s.vorticityInfluence !== undefined) this.vorticityInfluence = s.vorticityInfluence;
+        if (s.swirlIntensity !== undefined) this.swirlIntensity = s.swirlIntensity;
+        if (s.pressureDecay !== undefined) this.pressureDecay = s.pressureDecay;
+        if (s.velocityDissipation !== undefined) this.velocityDissipation = s.velocityDissipation;
+        if (s.densityDissipation !== undefined) this.densityDissipation = s.densityDissipation;
+        if (s.bumpDisplacmentScale !== undefined) this.bumpDisplacmentScale = s.bumpDisplacmentScale;
+        if (s.pressureIterations !== undefined) this.pressureIterations = s.pressureIterations;
+    }
+
+    dispose() {
+        // StorageTextures are managed by the GPU backend; no explicit dispose needed
+        // but we can clear references
     }
 }

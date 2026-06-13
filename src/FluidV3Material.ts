@@ -756,7 +756,8 @@ export class FluidV3Material extends MeshPhysicalMaterial {
         const freeSlot = this.tracking.find( slot=>!slot.target );
         if( !freeSlot )
         {
-            throw new Error(`No room for tracking, all slots taken!`);
+            console.warn(`No room for tracking, all slots taken!`);
+            return;
         }
 
         // hacer un raycast desde la posision del objeto hacia abajo
@@ -1059,8 +1060,12 @@ export class FluidV3Material extends MeshPhysicalMaterial {
                     pressureIterations: this.pressureIterations,
                 }
 
-                navigator.clipboard.writeText( JSON.stringify(settings, null, 2));
-                
+                try {
+                    navigator.clipboard.writeText( JSON.stringify(settings, null, 2));
+                } catch (_e) {
+                    console.warn("Clipboard write failed – browser may not support it or page is not focused.");
+                }
+
             }
         }, "copySettings" );
 
@@ -1077,7 +1082,6 @@ export class FluidV3Material extends MeshPhysicalMaterial {
     asSmoke() {
         this.transparent = true;
         this.actAsSmoke = true;
-        this.actAsSmoke = true;
     }
 
     /**
@@ -1085,14 +1089,24 @@ export class FluidV3Material extends MeshPhysicalMaterial {
      * @see `addDebugPanelFolder`
      */
     setSettings( s:Settings ) {
-        this.splatForce = s.splatForce;
-        this.splatThickness = s.splatThickness;
-        this.vorticityInfluence = s.vorticityInfluence;
-        this.swirlIntensity = s.swirlIntensity;
-        this.pressure = s.pressure;
-        this.velocityDissipation = s.velocityDissipation;
-        this.densityDissipation = s.densityDissipation;
-        this.displacementScale = s.displacementScale;
-        this.pressureIterations = s.pressureIterations; 
+        if (s.splatForce !== undefined) this.splatForce = s.splatForce;
+        if (s.splatThickness !== undefined) this.splatThickness = s.splatThickness;
+        if (s.vorticityInfluence !== undefined) this.vorticityInfluence = s.vorticityInfluence;
+        if (s.swirlIntensity !== undefined) this.swirlIntensity = s.swirlIntensity;
+        if (s.pressure !== undefined) this.pressure = s.pressure;
+        if (s.velocityDissipation !== undefined) this.velocityDissipation = s.velocityDissipation;
+        if (s.densityDissipation !== undefined) this.densityDissipation = s.densityDissipation;
+        if (s.displacementScale !== undefined) this.displacementScale = s.displacementScale;
+        if (s.pressureIterations !== undefined) this.pressureIterations = s.pressureIterations;
+    }
+
+    dispose() {
+        this.currentRT.dispose();
+        this.nextRT.dispose();
+        this.dyeRT.dispose();
+        this.nextDyeRT.dispose();
+        this.objectDataTexture.dispose();
+        this.objectPositionTexture.dispose();
+        this.quad.dispose();
     }
 }
